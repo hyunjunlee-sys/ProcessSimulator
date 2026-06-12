@@ -1,0 +1,6 @@
+CompileFlags:
+  Compiler: C:/msys64/ucrt64/bin/g++.exe
+  Add:
+    - -std=c++17
+    - -IC:/Users/LHJ/Desktop/ProcessSimulator/include
+    - --target=x86_64-w64-mingw32

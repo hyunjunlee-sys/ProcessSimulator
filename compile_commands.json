@@ -1,0 +1,57 @@
+[
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/main.cpp",
+    "file": "src/main.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Mesh/MeshCell.cpp",
+    "file": "src/Mesh/MeshCell.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Mesh/MeshGrid.cpp",
+    "file": "src/Mesh/MeshGrid.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Process/Etcher.cpp",
+    "file": "src/Process/Etcher.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Process/Depositor.cpp",
+    "file": "src/Process/Depositor.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Process/Photolithography.cpp",
+    "file": "src/Process/Photolithography.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/Process/ProcessSimulator.cpp",
+    "file": "src/Process/ProcessSimulator.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/IO/CSVExporter.cpp",
+    "file": "src/IO/CSVExporter.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/IO/VTKExporter.cpp",
+    "file": "src/IO/VTKExporter.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/IO/InputReader.cpp",
+    "file": "src/IO/InputReader.cpp"
+  },
+  {
+    "directory": "C:/Users/LHJ/Desktop/ProcessSimulator",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Iinclude -c src/IO/PathResolver.cpp",
+    "file": "src/IO/PathResolver.cpp"
+  }
+]

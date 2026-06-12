@@ -1,0 +1,26 @@
+# Defaults are defined in include/IO/SimulationDefaults.h
+NX=10
+NY=10
+NZ=7
+
+DX=5
+DY=5
+DZ=5
+
+# Bottom z-layers filled with INITIAL_MATERIAL at the start.
+# Layers above stay empty so photoresist can be coated on top.
+SUBSTRATE_LAYERS=5
+
+REGION_I_START=3
+REGION_I_END=6
+REGION_J_START=3
+REGION_J_END=6
+
+INITIAL_MATERIAL=Silicon
+
+# Photoresist thickness in nm (0 disables the lithography step).
+RESIST_THICKNESS=5
+
+ETCH_DEPTH=2
+ETCH_DEPTH_2=3
+DEPOSIT_DEPTH=2

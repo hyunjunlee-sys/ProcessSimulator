@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "llvm-vs-code-extensions.vscode-clangd"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.cpptools",
+    "franneck94.c-cpp-runner"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-std=c++17",
+                "-Iinclude",
+                "src/main.cpp",
+                "src/Mesh/MeshCell.cpp",
+                "src/Mesh/MeshGrid.cpp",
+                "src/Process/Etcher.cpp",
+                "src/Process/Depositor.cpp",
+                "src/Process/Photolithography.cpp",
+                "src/Process/ProcessSimulator.cpp",
+                "src/IO/CSVExporter.cpp",
+                "src/IO/VTKExporter.cpp",
+                "src/IO/InputReader.cpp",
+                "src/IO/PathResolver.cpp",
+                "-o",
+                "output/simulator.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}
