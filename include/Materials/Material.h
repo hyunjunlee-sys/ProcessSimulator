@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <optional>
 #include <string>
 
 enum class MaterialType
@@ -57,7 +58,10 @@ inline char MaterialTypeToSymbol(MaterialType material)
     }
 }
 
-inline MaterialType MaterialTypeFromString(const std::string& name)
+// Returns std::nullopt for an unrecognized name. The literal "empty"
+// maps to MaterialType::Empty, so callers can distinguish "no such
+// material" (nullopt) from the intentional empty material.
+inline std::optional<MaterialType> MaterialTypeFromString(const std::string& name)
 {
     std::string normalized = name;
     std::transform(
@@ -101,7 +105,7 @@ inline MaterialType MaterialTypeFromString(const std::string& name)
         return MaterialType::Photoresist;
     }
 
-    return MaterialType::Empty;
+    return std::nullopt;
 }
 
 #endif

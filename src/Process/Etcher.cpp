@@ -43,7 +43,10 @@ void Etcher::EtchBoxRegion(
 }
 
 // Removes material from the top of the column downward. Depth exceeding
-// one cell propagates into the cells below. Returns unused etch depth.
+// one cell propagates into the cells below. Photoresist acts as a hard
+// etch mask: when the topmost material in a column is photoresist, the
+// whole column is protected and nothing is etched. Returns the unused
+// etch depth (only meaningful for unmasked columns).
 double Etcher::EtchColumn(
     MeshGrid& mesh,
     int i,
@@ -60,6 +63,13 @@ double Etcher::EtchColumn(
         if (cell.IsEmpty())
         {
             continue;
+        }
+
+        // The first solid material encountered from the top is the
+        // surface. If it is photoresist, the column is masked.
+        if (cell.GetSurfaceMaterial() == MaterialType::Photoresist)
+        {
+            return 0.0;
         }
 
         const double materialDepth =

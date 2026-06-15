@@ -2,8 +2,10 @@
 #define INPUTREADER_H
 
 #include "Materials/Material.h"
+#include "Process/ProcessStep.h"
 
 #include <string>
+#include <vector>
 
 struct SimulationConfig
 {
@@ -17,17 +19,12 @@ struct SimulationConfig
     double dy;
     double dz;
 
-    int regionIStart;
-    int regionIEnd;
-    int regionJStart;
-    int regionJEnd;
-
-    double etchDepth;
-    double etchDepth2;
-    double depositDepth;
-    double resistThickness;
-
     MaterialType initialMaterial;
+
+    bool verbose;
+
+    // Ordered process recipe executed by the simulator.
+    std::vector<ProcessStep> steps;
 };
 
 class InputReader

@@ -17,7 +17,7 @@ ProcessSimulator::ProcessSimulator(
 {
 }
 
-void ProcessSimulator::RunSimpleProcess(const SimulationConfig& config)
+void ProcessSimulator::RunProcess(const SimulationConfig& config)
 {
     std::cout << "\n==============================\n";
     std::cout << "Process Simulation Start\n";
@@ -31,109 +31,99 @@ void ProcessSimulator::RunSimpleProcess(const SimulationConfig& config)
     mesh_.PrintSummary();
     mesh_.PrintAllSlicesZ();
 
+    if (config.steps.empty())
+    {
+        std::cout << "\nNo process steps were defined.\n";
+        std::cout << "\nProcess Simulation Finished\n";
+        return;
+    }
+
     int stepNumber = 1;
 
-    const bool useLithography = config.resistThickness > 0.0;
-
-    if (useLithography)
+    for (const ProcessStep& step : config.steps)
     {
-        std::cout << "\nStep " << stepNumber++
-                  << ": Photolithography - coat "
-                  << config.resistThickness
+        std::cout << "\nStep " << stepNumber++ << ": ";
+        ApplyStep(step);
+
+        mesh_.PrintSummary();
+
+        if (config.verbose)
+        {
+            mesh_.PrintAllSlicesZ();
+        }
+    }
+
+    if (!config.verbose)
+    {
+        std::cout << "\nFinal mesh state\n";
+        mesh_.PrintAllSlicesZ();
+    }
+
+    std::cout << "\nProcess Simulation Finished\n";
+}
+
+void ProcessSimulator::ApplyStep(const ProcessStep& step)
+{
+    switch (step.type)
+    {
+    case ProcessStepType::Photolithography:
+        std::cout << "Photolithography - coat "
+                  << step.depth
                   << " nm photoresist, expose and develop mask window\n";
 
         photolithography_.PatternBoxRegion(
             mesh_,
-            config.regionIStart,
-            config.regionIEnd,
-            config.regionJStart,
-            config.regionJEnd,
-            config.resistThickness
+            step.iStart,
+            step.iEnd,
+            step.jStart,
+            step.jEnd,
+            step.depth
         );
+        break;
 
-        mesh_.PrintSummary();
-        mesh_.PrintAllSlicesZ();
-    }
-
-    if (config.etchDepth > 0.0)
-    {
-        std::cout << "\nStep " << stepNumber++
-                  << ": Etch center region by "
-                  << config.etchDepth
-                  << " nm\n";
+    case ProcessStepType::Etch:
+        std::cout << "Etch region by "
+                  << step.depth
+                  << " nm (photoresist-masked)\n";
 
         etcher_.EtchBoxRegion(
             mesh_,
-            config.regionIStart,
-            config.regionIEnd,
-            config.regionJStart,
-            config.regionJEnd,
-            config.etchDepth
+            step.iStart,
+            step.iEnd,
+            step.jStart,
+            step.jEnd,
+            step.depth
         );
+        break;
 
-        mesh_.PrintSummary();
-        mesh_.PrintAllSlicesZ();
-    }
-
-    if (config.etchDepth2 > 0.0)
-    {
-        std::cout << "\nStep " << stepNumber++
-                  << ": Additional etching center region by "
-                  << config.etchDepth2
-                  << " nm\n";
-
-        etcher_.EtchBoxRegion(
-            mesh_,
-            config.regionIStart,
-            config.regionIEnd,
-            config.regionJStart,
-            config.regionJEnd,
-            config.etchDepth2
-        );
-
-        mesh_.PrintSummary();
-        mesh_.PrintAllSlicesZ();
-    }
-
-    if (config.depositDepth > 0.0)
-    {
-        std::cout << "\nStep " << stepNumber++
-                  << ": Deposit oxide by "
-                  << config.depositDepth
-                  << " nm into etched region\n";
+    case ProcessStepType::Deposit:
+        std::cout << "Deposit "
+                  << MaterialTypeToString(step.material)
+                  << " by "
+                  << step.depth
+                  << " nm into the region\n";
 
         depositor_.DepositBoxRegion(
             mesh_,
-            config.regionIStart,
-            config.regionIEnd,
-            config.regionJStart,
-            config.regionJEnd,
-            config.depositDepth,
-            MaterialType::Oxide
+            step.iStart,
+            step.iEnd,
+            step.jStart,
+            step.jEnd,
+            step.depth,
+            step.material
         );
+        break;
 
-        mesh_.PrintSummary();
-        mesh_.PrintAllSlicesZ();
-    }
-
-    if (useLithography)
+    case ProcessStepType::StripResist:
     {
-        std::cout << "\nStep " << stepNumber++
-                  << ": Strip remaining photoresist (ashing)\n";
+        const double removedVolume = photolithography_.StripResist(mesh_);
 
-        photolithography_.StripResist(mesh_);
-
-        mesh_.PrintSummary();
-        mesh_.PrintAllSlicesZ();
+        std::cout << "Strip remaining photoresist (ashing) - removed "
+                  << removedVolume
+                  << " nm^3\n";
+        break;
     }
-
-    if (stepNumber == 1)
-    {
-        std::cout << "\nNo process steps were executed "
-                  << "(all depths are zero).\n";
     }
-
-    std::cout << "\nProcess Simulation Finished\n";
 }
 
 void ProcessSimulator::ExportResult(const std::string& filename) const

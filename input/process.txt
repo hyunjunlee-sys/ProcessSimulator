@@ -1,4 +1,8 @@
-# Defaults are defined in include/IO/SimulationDefaults.h
+# ProcessSimulator input file.
+# Defaults are defined in include/IO/SimulationDefaults.h.
+# Lines are KEY=VALUE; text after '#' is a comment.
+
+# ---- Mesh geometry ----
 NX=10
 NY=10
 NZ=7
@@ -11,16 +15,23 @@ DZ=5
 # Layers above stay empty so photoresist can be coated on top.
 SUBSTRATE_LAYERS=5
 
-REGION_I_START=3
-REGION_I_END=6
-REGION_J_START=3
-REGION_J_END=6
-
 INITIAL_MATERIAL=Silicon
 
-# Photoresist thickness in nm (0 disables the lithography step).
-RESIST_THICKNESS=5
+# Print all Z slices after every step (true) or only the initial
+# and final mesh states (false).
+VERBOSE=false
 
-ETCH_DEPTH=2
-ETCH_DEPTH_2=3
-DEPOSIT_DEPTH=2
+# ---- Process recipe ----
+# Steps run in the order listed. Supported step types:
+#   LITHO    region=i0,i1,j0,j1  thickness=<nm>
+#   ETCH     region=i0,i1,j0,j1  depth=<nm>
+#   DEPOSIT  region=i0,i1,j0,j1  depth=<nm>  material=<name>
+#   STRIP
+# 'region' is optional; when omitted the step covers the whole wafer.
+# Photoresist acts as an etch mask, so ETCH only attacks open windows.
+
+STEP=LITHO   region=3,6,3,6 thickness=5
+STEP=ETCH    region=3,6,3,6 depth=2
+STEP=ETCH    region=3,6,3,6 depth=3
+STEP=DEPOSIT region=3,6,3,6 depth=2 material=Oxide
+STEP=STRIP

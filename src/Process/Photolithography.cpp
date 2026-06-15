@@ -32,8 +32,12 @@ void Photolithography::PatternBoxRegion(
     );
 }
 
-void Photolithography::StripResist(MeshGrid& mesh) const
+double Photolithography::StripResist(MeshGrid& mesh) const
 {
+    double removedVolume = 0.0;
+
+    const double columnArea = mesh.GetDx() * mesh.GetDy();
+
     ForEachColumnInBox(
         mesh,
         0,
@@ -42,9 +46,11 @@ void Photolithography::StripResist(MeshGrid& mesh) const
         mesh.GetNy() - 1,
         [&](int i, int j)
         {
-            RemoveResistColumn(mesh, i, j);
+            removedVolume += RemoveResistColumn(mesh, i, j) * columnArea;
         }
     );
+
+    return removedVolume;
 }
 
 // Blanket coat: fills the available space on top of every column,

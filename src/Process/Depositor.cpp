@@ -39,16 +39,19 @@ void Depositor::DepositBoxRegion(
 
     if (maxRemainingDepth > SimulationDefaults::kDepthWarningEpsilon)
     {
-        std::cerr << "Warning: Deposition depth exceeded available void space "
-                  << "by up to "
+        std::cerr << "Warning: Could not deposit all requested material by "
+                  << "up to "
                   << maxRemainingDepth
-                  << " nm in the specified region.\n";
+                  << " nm in the specified region (insufficient void space "
+                  << "or a third material would be required in a cell).\n";
     }
 }
 
 // Fills void space from the bottom of the column upward. Depth exceeding
-// one cell's void space propagates into the cells above.
-// Returns unused deposition depth.
+// one cell's void space propagates into the cells above. Stops early if a
+// cell cannot accept the material (it already holds two other materials),
+// since filling above it would leave a buried void. Returns the unused
+// deposition depth.
 double Depositor::DepositColumn(
     MeshGrid& mesh,
     int i,
@@ -71,9 +74,20 @@ double Depositor::DepositColumn(
             continue;
         }
 
-        const double addedDepth = std::min(remainingDepth, voidDepth);
+        const double requestedDepth = std::min(remainingDepth, voidDepth);
 
-        cell.AddFraction(addedDepth / cell.GetDz(), material);
+        const double addedFraction =
+            cell.AddFraction(requestedDepth / cell.GetDz(), material);
+
+        const double addedDepth = addedFraction * cell.GetDz();
+
+        if (addedDepth <= kFractionEpsilon * cell.GetDz())
+        {
+            // The cell has void but rejected the material (two-layer
+            // limit). Filling cells above would bury this void, so stop.
+            break;
+        }
+
         remainingDepth -= addedDepth;
     }
 

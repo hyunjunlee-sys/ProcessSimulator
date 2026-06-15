@@ -20,7 +20,9 @@ public:
         double resistThickness
     ) const;
 
-    void StripResist(MeshGrid& mesh) const;
+    // Removes all photoresist from the wafer and returns the total
+    // stripped resist volume in nm^3.
+    double StripResist(MeshGrid& mesh) const;
 
 private:
     void CoatResist(MeshGrid& mesh, double resistThickness) const;

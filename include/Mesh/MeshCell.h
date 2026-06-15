@@ -74,7 +74,11 @@ public:
     bool HasMultipleMaterials() const;
 
     void RemoveFraction(double fraction);
-    void AddFraction(double fraction, MaterialType material);
+
+    // Adds up to `fraction` of `material` into the cell's void space and
+    // returns the fraction actually added. Returns 0.0 when the cell
+    // cannot accept it (no void, or it already holds two other materials).
+    double AddFraction(double fraction, MaterialType material);
 
     // Removes every layer of the given material from this cell and
     // returns the removed fraction (0.0 if the material is absent).

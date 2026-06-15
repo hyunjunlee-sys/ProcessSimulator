@@ -33,8 +33,11 @@ public:
         int substrateLayers
     );
 
-    void RunSimpleProcess(const SimulationConfig& config);
+    void RunProcess(const SimulationConfig& config);
     void ExportResult(const std::string& filename) const;
+
+private:
+    void ApplyStep(const ProcessStep& step);
 };
 
 #endif

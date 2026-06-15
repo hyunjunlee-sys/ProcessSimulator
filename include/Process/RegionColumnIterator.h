@@ -3,15 +3,17 @@
 
 #include "Mesh/MeshGrid.h"
 
-#include <functional>
-
+// Invokes `action(i, j)` for every in-bounds (i, j) column in the
+// inclusive box [iStart, iEnd] x [jStart, jEnd]. Templated on the
+// action type so the callable is inlined with no type-erasure overhead.
+template <typename Action>
 inline void ForEachColumnInBox(
     const MeshGrid& mesh,
     int iStart,
     int iEnd,
     int jStart,
     int jEnd,
-    const std::function<void(int i, int j)>& action
+    Action action
 )
 {
     for (int j = jStart; j <= jEnd; ++j)

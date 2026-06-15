@@ -18,6 +18,8 @@ namespace SimulationDefaults
     inline constexpr double kDy = 5.0;
     inline constexpr double kDz = 5.0;
 
+    // Default process recipe parameters. These only build the fallback
+    // recipe used when the input file declares no STEP lines.
     inline constexpr int kRegionIStart = 3;
     inline constexpr int kRegionIEnd = 6;
     inline constexpr int kRegionJStart = 3;
@@ -27,10 +29,14 @@ namespace SimulationDefaults
     inline constexpr double kEtchDepth2 = 3.0;
     inline constexpr double kDepositDepth = 2.0;
 
-    // Photoresist thickness (nm). Zero disables the lithography step.
+    // Photoresist thickness (nm) for the default lithography step.
     inline constexpr double kResistThickness = 5.0;
 
     inline constexpr MaterialType kInitialMaterial = MaterialType::Silicon;
+
+    // When true, every step prints all Z slices; otherwise only the
+    // initial and final mesh states are shown in full.
+    inline constexpr bool kVerbose = false;
 
     // Depths below this threshold (nm) are treated as fully consumed.
     inline constexpr double kDepthWarningEpsilon = 1e-6;

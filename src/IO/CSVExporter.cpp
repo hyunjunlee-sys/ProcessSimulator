@@ -28,6 +28,8 @@ void CSVExporter::ExportMeshGrid(
          << "cell_volume,"
          << "remaining_volume\n";
 
+    file << std::fixed << std::setprecision(6);
+
     for (const MeshCell& cell : mesh.GetCells())
     {
         file << cell.GetI() << ","
@@ -40,7 +42,6 @@ void CSVExporter::ExportMeshGrid(
              << cell.GetDy() << ","
              << cell.GetDz() << ","
              << MaterialTypeToString(cell.GetPrimaryMaterial()) << ","
-             << std::fixed << std::setprecision(6)
              << cell.GetPrimaryFraction() << ","
              << MaterialTypeToString(cell.GetSecondaryMaterial()) << ","
              << cell.GetSecondaryFraction() << ","

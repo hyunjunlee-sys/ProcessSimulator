@@ -1,10 +1,15 @@
 #include "IO/InputReader.h"
 #include "IO/SimulationDefaults.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <fstream>
+#include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -24,11 +29,62 @@ namespace
         return text.substr(begin, end - begin + 1);
     }
 
+    std::string ToLower(std::string text)
+    {
+        std::transform(
+            text.begin(),
+            text.end(),
+            text.begin(),
+            [](unsigned char character)
+            {
+                return static_cast<char>(std::tolower(character));
+            }
+        );
+
+        return text;
+    }
+
+    std::vector<std::string> SplitWhitespace(const std::string& text)
+    {
+        std::vector<std::string> tokens;
+        std::istringstream stream(text);
+        std::string token;
+
+        while (stream >> token)
+        {
+            tokens.push_back(token);
+        }
+
+        return tokens;
+    }
+
+    std::vector<std::string> SplitByComma(const std::string& text)
+    {
+        std::vector<std::string> parts;
+        std::stringstream stream(text);
+        std::string part;
+
+        while (std::getline(stream, part, ','))
+        {
+            parts.push_back(Trim(part));
+        }
+
+        return parts;
+    }
+
     int ParseInt(const std::string& key, const std::string& value)
     {
         try
         {
-            return std::stoi(value);
+            std::size_t consumed = 0;
+            const int parsed = std::stoi(value, &consumed);
+
+            if (consumed != value.size())
+            {
+                throw std::invalid_argument("trailing characters");
+            }
+
+            return parsed;
         }
         catch (const std::exception&)
         {
@@ -42,7 +98,15 @@ namespace
     {
         try
         {
-            return std::stod(value);
+            std::size_t consumed = 0;
+            const double parsed = std::stod(value, &consumed);
+
+            if (consumed != value.size())
+            {
+                throw std::invalid_argument("trailing characters");
+            }
+
+            return parsed;
         }
         catch (const std::exception&)
         {
@@ -52,11 +116,34 @@ namespace
         }
     }
 
+    bool ParseBool(const std::string& key, const std::string& value)
+    {
+        const std::string normalized = ToLower(value);
+
+        if (normalized == "true" || normalized == "1" ||
+            normalized == "yes" || normalized == "on")
+        {
+            return true;
+        }
+
+        if (normalized == "false" || normalized == "0" ||
+            normalized == "no" || normalized == "off")
+        {
+            return false;
+        }
+
+        throw std::runtime_error(
+            "Invalid boolean value for " + key + ": '" + value +
+            "' (expected true/false)"
+        );
+    }
+
     MaterialType ParseMaterial(const std::string& key, const std::string& value)
     {
-        const MaterialType material = MaterialTypeFromString(value);
+        const std::optional<MaterialType> material =
+            MaterialTypeFromString(value);
 
-        if (material == MaterialType::Empty)
+        if (!material || *material == MaterialType::Empty)
         {
             throw std::runtime_error(
                 "Invalid material for " + key + ": '" + value +
@@ -64,10 +151,223 @@ namespace
             );
         }
 
-        return material;
+        return *material;
     }
 
-    void ValidateConfig(const SimulationConfig& config)
+    ProcessStepType ParseStepType(const std::string& token)
+    {
+        const std::string type = ToLower(token);
+
+        if (type == "litho" || type == "lithography" ||
+            type == "photo" || type == "photolithography")
+        {
+            return ProcessStepType::Photolithography;
+        }
+
+        if (type == "etch" || type == "etching")
+        {
+            return ProcessStepType::Etch;
+        }
+
+        if (type == "deposit" || type == "deposition")
+        {
+            return ProcessStepType::Deposit;
+        }
+
+        if (type == "strip" || type == "strip_resist" ||
+            type == "ash" || type == "ashing")
+        {
+            return ProcessStepType::StripResist;
+        }
+
+        throw std::runtime_error(
+            "Unknown process step type: '" + token +
+            "' (expected LITHO, ETCH, DEPOSIT, or STRIP)"
+        );
+    }
+
+    void ParseRegion(ProcessStep& step, const std::string& value)
+    {
+        const std::vector<std::string> parts = SplitByComma(value);
+
+        if (parts.size() != 4)
+        {
+            throw std::runtime_error(
+                "STEP region must have 4 comma-separated indices "
+                "(iStart,iEnd,jStart,jEnd), got: '" + value + "'"
+            );
+        }
+
+        step.iStart = ParseInt("region.iStart", parts[0]);
+        step.iEnd = ParseInt("region.iEnd", parts[1]);
+        step.jStart = ParseInt("region.jStart", parts[2]);
+        step.jEnd = ParseInt("region.jEnd", parts[3]);
+        step.hasRegion = true;
+    }
+
+    ProcessStep ParseStep(const std::string& value)
+    {
+        const std::vector<std::string> tokens = SplitWhitespace(value);
+
+        if (tokens.empty())
+        {
+            throw std::runtime_error("STEP requires a type (e.g. ETCH).");
+        }
+
+        ProcessStep step;
+        step.type = ParseStepType(tokens[0]);
+
+        for (std::size_t index = 1; index < tokens.size(); ++index)
+        {
+            const std::string& token = tokens[index];
+            const std::size_t separatorPos = token.find('=');
+
+            if (separatorPos == std::string::npos)
+            {
+                throw std::runtime_error(
+                    "Invalid STEP parameter (expected key=value): '" +
+                    token + "'"
+                );
+            }
+
+            const std::string parameterKey =
+                ToLower(Trim(token.substr(0, separatorPos)));
+            const std::string parameterValue =
+                Trim(token.substr(separatorPos + 1));
+
+            if (parameterKey == "region")
+            {
+                ParseRegion(step, parameterValue);
+            }
+            else if (parameterKey == "depth" || parameterKey == "thickness")
+            {
+                step.depth = ParseDouble("depth", parameterValue);
+            }
+            else if (parameterKey == "material")
+            {
+                step.material = ParseMaterial("material", parameterValue);
+            }
+            else
+            {
+                throw std::runtime_error(
+                    "Unknown STEP parameter key: '" + parameterKey + "'"
+                );
+            }
+        }
+
+        return step;
+    }
+
+    void AppendDefaultSteps(SimulationConfig& config)
+    {
+        namespace D = SimulationDefaults;
+
+        auto makeRegionStep =
+            [](ProcessStepType type, double depth, MaterialType material)
+        {
+            ProcessStep step;
+            step.type = type;
+            step.depth = depth;
+            step.material = material;
+            step.iStart = D::kRegionIStart;
+            step.iEnd = D::kRegionIEnd;
+            step.jStart = D::kRegionJStart;
+            step.jEnd = D::kRegionJEnd;
+            step.hasRegion = true;
+            return step;
+        };
+
+        config.steps.push_back(makeRegionStep(
+            ProcessStepType::Photolithography,
+            D::kResistThickness,
+            MaterialType::Empty
+        ));
+        config.steps.push_back(makeRegionStep(
+            ProcessStepType::Etch,
+            D::kEtchDepth,
+            MaterialType::Empty
+        ));
+        config.steps.push_back(makeRegionStep(
+            ProcessStepType::Etch,
+            D::kEtchDepth2,
+            MaterialType::Empty
+        ));
+        config.steps.push_back(makeRegionStep(
+            ProcessStepType::Deposit,
+            D::kDepositDepth,
+            MaterialType::Oxide
+        ));
+
+        ProcessStep strip;
+        strip.type = ProcessStepType::StripResist;
+        config.steps.push_back(strip);
+    }
+
+    void ResolveAndValidateStep(ProcessStep& step, const SimulationConfig& config)
+    {
+        if (!step.hasRegion)
+        {
+            step.iStart = 0;
+            step.iEnd = config.nx - 1;
+            step.jStart = 0;
+            step.jEnd = config.ny - 1;
+            step.hasRegion = true;
+        }
+
+        if (step.iStart > step.iEnd || step.jStart > step.jEnd)
+        {
+            throw std::runtime_error(
+                "STEP region start index must not exceed end index."
+            );
+        }
+
+        if (step.iStart < 0 || step.iEnd >= config.nx ||
+            step.jStart < 0 || step.jEnd >= config.ny)
+        {
+            throw std::runtime_error(
+                "STEP region indices must be within mesh bounds: "
+                "I in [0, " + std::to_string(config.nx - 1) + "], "
+                "J in [0, " + std::to_string(config.ny - 1) + "]."
+            );
+        }
+
+        const std::string label =
+            std::string(ProcessStepTypeToString(step.type)) + " step";
+
+        switch (step.type)
+        {
+        case ProcessStepType::Photolithography:
+        case ProcessStepType::Etch:
+            if (step.depth <= 0.0)
+            {
+                throw std::runtime_error(
+                    label + " requires a positive depth/thickness."
+                );
+            }
+            break;
+
+        case ProcessStepType::Deposit:
+            if (step.depth <= 0.0)
+            {
+                throw std::runtime_error(
+                    label + " requires a positive depth."
+                );
+            }
+
+            if (step.material == MaterialType::Empty)
+            {
+                throw std::runtime_error(
+                    label + " requires a material (e.g. material=Oxide)."
+                );
+            }
+            break;
+
+        case ProcessStepType::StripResist:
+            break;
+        }
+    }
+
+    void ValidateAndResolveConfig(SimulationConfig& config)
     {
         if (config.nx <= 0 || config.ny <= 0 || config.nz <= 0)
         {
@@ -83,57 +383,18 @@ namespace
             );
         }
 
-        if (config.regionIStart > config.regionIEnd ||
-            config.regionJStart > config.regionJEnd)
-        {
-            throw std::runtime_error(
-                "Region start index must not exceed end index."
-            );
-        }
-
-        if (config.regionIStart < 0 ||
-            config.regionIEnd >= config.nx ||
-            config.regionJStart < 0 ||
-            config.regionJEnd >= config.ny)
-        {
-            throw std::runtime_error(
-                "Region indices must be within mesh bounds: "
-                "I in [0, " + std::to_string(config.nx - 1) + "], "
-                "J in [0, " + std::to_string(config.ny - 1) + "]."
-            );
-        }
-
-        if (config.substrateLayers < 1 ||
+        if (config.substrateLayers < 0 ||
             config.substrateLayers > config.nz)
         {
             throw std::runtime_error(
-                "SUBSTRATE_LAYERS must be between 1 and NZ ("
+                "SUBSTRATE_LAYERS must be between 0 and NZ ("
                 + std::to_string(config.nz) + ")."
             );
         }
 
-        if (config.etchDepth < 0.0 ||
-            config.etchDepth2 < 0.0 ||
-            config.depositDepth < 0.0 ||
-            config.resistThickness < 0.0)
+        for (ProcessStep& step : config.steps)
         {
-            throw std::runtime_error(
-                "Process depths must not be negative."
-            );
-        }
-
-        const double headroom =
-            (config.nz - config.substrateLayers) * config.dz;
-
-        if (config.resistThickness > headroom)
-        {
-            throw std::runtime_error(
-                "RESIST_THICKNESS (" +
-                std::to_string(config.resistThickness) +
-                " nm) does not fit above the substrate; available "
-                "headroom is " + std::to_string(headroom) + " nm. "
-                "Increase NZ or decrease SUBSTRATE_LAYERS."
-            );
+            ResolveAndValidateStep(step, config);
         }
     }
 }
@@ -152,17 +413,9 @@ SimulationConfig InputReader::CreateDefaultConfig()
     config.dy = SimulationDefaults::kDy;
     config.dz = SimulationDefaults::kDz;
 
-    config.regionIStart = SimulationDefaults::kRegionIStart;
-    config.regionIEnd = SimulationDefaults::kRegionIEnd;
-    config.regionJStart = SimulationDefaults::kRegionJStart;
-    config.regionJEnd = SimulationDefaults::kRegionJEnd;
-
-    config.etchDepth = SimulationDefaults::kEtchDepth;
-    config.etchDepth2 = SimulationDefaults::kEtchDepth2;
-    config.depositDepth = SimulationDefaults::kDepositDepth;
-    config.resistThickness = SimulationDefaults::kResistThickness;
-
     config.initialMaterial = SimulationDefaults::kInitialMaterial;
+
+    config.verbose = SimulationDefaults::kVerbose;
 
     return config;
 }
@@ -236,41 +489,17 @@ SimulationConfig InputReader::Read(const std::string& filename) const
         {
             config.dz = ParseDouble(key, value);
         }
-        else if (key == "REGION_I_START")
-        {
-            config.regionIStart = ParseInt(key, value);
-        }
-        else if (key == "REGION_I_END")
-        {
-            config.regionIEnd = ParseInt(key, value);
-        }
-        else if (key == "REGION_J_START")
-        {
-            config.regionJStart = ParseInt(key, value);
-        }
-        else if (key == "REGION_J_END")
-        {
-            config.regionJEnd = ParseInt(key, value);
-        }
-        else if (key == "ETCH_DEPTH")
-        {
-            config.etchDepth = ParseDouble(key, value);
-        }
-        else if (key == "ETCH_DEPTH_2")
-        {
-            config.etchDepth2 = ParseDouble(key, value);
-        }
-        else if (key == "DEPOSIT_DEPTH")
-        {
-            config.depositDepth = ParseDouble(key, value);
-        }
-        else if (key == "RESIST_THICKNESS")
-        {
-            config.resistThickness = ParseDouble(key, value);
-        }
         else if (key == "INITIAL_MATERIAL")
         {
             config.initialMaterial = ParseMaterial(key, value);
+        }
+        else if (key == "VERBOSE")
+        {
+            config.verbose = ParseBool(key, value);
+        }
+        else if (key == "STEP")
+        {
+            config.steps.push_back(ParseStep(value));
         }
         else
         {
@@ -278,7 +507,12 @@ SimulationConfig InputReader::Read(const std::string& filename) const
         }
     }
 
-    ValidateConfig(config);
+    if (config.steps.empty())
+    {
+        AppendDefaultSteps(config);
+    }
+
+    ValidateAndResolveConfig(config);
 
     return config;
 }

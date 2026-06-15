@@ -1,0 +1,9 @@
+# Build output
+/build/
+/output/*.exe
+/output/_review_check.exe
+
+# Editor / OS
+*.o
+*.obj
+.DS_Store

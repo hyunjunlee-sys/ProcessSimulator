@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
             config.substrateLayers
         );
 
-        simulator.RunSimpleProcess(config);
+        simulator.RunProcess(config);
         simulator.ExportResult(outputPath);
     }
     catch (const std::exception& e)

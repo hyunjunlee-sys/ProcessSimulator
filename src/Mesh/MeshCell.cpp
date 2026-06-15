@@ -210,11 +210,11 @@ void MeshCell::RemoveFraction(double fraction)
     }
 }
 
-void MeshCell::AddFraction(double fraction, MaterialType material)
+double MeshCell::AddFraction(double fraction, MaterialType material)
 {
     if (fraction <= 0.0 || material == MaterialType::Empty)
     {
-        return;
+        return 0.0;
     }
 
     const double voidFraction =
@@ -222,7 +222,7 @@ void MeshCell::AddFraction(double fraction, MaterialType material)
 
     if (voidFraction <= kFractionEpsilon)
     {
-        return;
+        return 0.0;
     }
 
     const double addedFraction = std::min(fraction, voidFraction);
@@ -231,7 +231,7 @@ void MeshCell::AddFraction(double fraction, MaterialType material)
     {
         primaryMaterial_ = material;
         primaryFraction_ = addedFraction;
-        return;
+        return addedFraction;
     }
 
     if (secondaryMaterial_ != MaterialType::Empty)
@@ -240,22 +240,25 @@ void MeshCell::AddFraction(double fraction, MaterialType material)
         {
             secondaryFraction_ += addedFraction;
             NormalizeLayer(secondaryMaterial_, secondaryFraction_);
-            return;
+            return addedFraction;
         }
 
-        return;
+        // The cell already stacks two distinct materials; this model
+        // keeps at most two layers per cell, so a third is rejected.
+        return 0.0;
     }
 
     if (primaryMaterial_ == material)
     {
         primaryFraction_ += addedFraction;
         NormalizeLayer(primaryMaterial_, primaryFraction_);
-        return;
+        return addedFraction;
     }
 
     secondaryMaterial_ = material;
     secondaryFraction_ = addedFraction;
     NormalizeLayer(secondaryMaterial_, secondaryFraction_);
+    return addedFraction;
 }
 
 double MeshCell::RemoveMaterial(MaterialType material)
